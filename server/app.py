@@ -6,9 +6,8 @@ from flask_migrate import Migrate
 from models import db, Bakery, BakedGood
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = False
+
+
 
 migrate = Migrate(app, db)
 
@@ -44,6 +43,23 @@ def most_expensive_baked_good():
     most_expensive = BakedGood.query.order_by(BakedGood.price.desc()).limit(1).first()
     most_expensive_serialized = most_expensive.to_dict()
     return make_response( most_expensive_serialized,   200  )
+
+@app.route('/baked_goods', methods=['GET', 'POST'])
+def baked_goods():
+    data = request.form
+    name = data.get('name')
+    price = data.get('price')
+    bakery_id = data.get('bakery_id')
+
+    if not all([name, price, bakery_id]):
+        return jsonify({'message': 'Missing data fields'}), 400
+
+    baked_good = BakedGood(name=name, price=float(price), bakery_id=int(bakery_id))
+    db.session.add(baked_good)
+    db.session.commit()
+
+    return jsonify(baked_good.serialize()), 201
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
